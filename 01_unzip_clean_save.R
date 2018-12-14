@@ -47,7 +47,8 @@ ler_renomearVars <- function(arquivo, linhas_skip, name_colunas) {
   
   read_excel(path = arquivo, skip = linhas_skip) %>% 
     select(-starts_with("X__")) %>%
-    setNames(name_colunas)
+    setNames(name_colunas) %>% 
+    mutate(DATA = Sys.Date())
   
 }
 
@@ -66,3 +67,15 @@ parse_column <- function(x){
 }
 
 lista_data_frames[[2]] <- map_df(lista_data_frames[[2]], ~ parse_column(.))
+
+removerArquivos <- function(lista_arquivos_01, lista_arquivos_02) {
+  
+  if (sum(file.exists(lista_arquivos_01, lista_arquivos_02)) != 0) {
+    file.remove(lista_arquivos_01, lista_arquivos_02)
+    
+  } else  {
+    print("Arquivos já foram deletados ou tiveram seus nomes alterados. Cheque seu working directory")
+  }
+}
+
+walk2(lista_arquivos, as.list(arquivos_finais), removerArquivos)
