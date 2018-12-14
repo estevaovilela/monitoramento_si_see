@@ -6,8 +6,8 @@ con <- dbConnect(RMariaDB::MariaDB(),
                  dbname = "db_ngi",
                  host = "10.23.185.10",
                  port = 3306,
-                 user = "xxxx",
-                 password = "xxxx")
+                 user = "arthur_cheib",
+                 password = rstudioapi::askForPassword("Database password"))
 
 #Listagem de todas as tabelas que existem no banco NGI:
 tabelas_banco <- dbListTables(con)
