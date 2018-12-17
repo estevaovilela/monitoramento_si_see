@@ -8,6 +8,7 @@ library(data.table)
 library(lubridate)
 library(leaflet)
 library(sp)
+library(RMariaDB)
 
 theme_set(theme_bw())
 
@@ -28,17 +29,6 @@ tabelas_banco <- dbListTables(con)
 bd_criacao <- RMariaDB::dbReadTable(con, tabelas_banco[1])
 bd_encerramento <- RMariaDB::dbReadTable(con, tabelas_banco[2])
 bd_matricula <- RMariaDB::dbReadTable(con, tabelas_banco[3])
-
-
-# Reading - Geo - SRE -----------------------------------------------------
-
-sre_geo <- rgdal::readOGR(dsn = path.expand("C:/Users/m7531296/OneDrive/Estevao/Profissional/SEE/projects/localizacao-escolas/shp/Contorno SREs.shp"),
-                          layer = "Contorno SREs")
-
-sre_geo@data$SRE <- str_to_upper(sre_geo@data$Nome.SRE)
-sre_geo@data$SRE[c(7,12,15,24,26:28,34)] <- c("SAO JOAO DEL REI", "CONSELHEIRO LAFAIETE", "SAO SEBASTIAO DO PARAISO",
-                                            "CORONEL FABRICIANO", "METROPOLITANA A", "METROPOLITANA B",
-                                            "METROPOLITANA C", "GOVERNADOR VALADARES")
 
 # Reading - csv-----------------------------------------------------------------
 
@@ -69,7 +59,7 @@ bd_criacao <- bd_criacao %>%
             TOTAL_TURMA_AUTORIZADA = sum(QT_TURMA_AUTORIZADA, na.rm = TRUE)) %>% 
   mutate(TX_CRIACAO = TOTAL_TURMA_CRIADA / TOTAL_TURMA_PA,
          TX_AUTORIZACAO = TOTAL_TURMA_AUTORIZADA / TOTAL_TURMA_PA) %>% 
-  select(-starts_with("TOTAL"))
+  select(-starts_with("TOTAL")) 
 
 bd_encerramento <- bd_encerramento %>% 
   group_by(SRE, DATA) %>% 
@@ -97,27 +87,11 @@ base_tabela <- bd_criacao %>%
   left_join(bd_matricula, by = c("SRE", "DATA")) %>% 
   arrange(TX_ENCERRAMENTO)
 
-# Leaflet -----------------------------------------------------------------
+# A tabela de criação de turmas tem tratamento a parte
+bd_criacao <- bd_criacao %>%  
+  setNames(c("SRE", "DATA", "CRIACAO", "AUTORIZACAO")) %>% 
+  gather(key = TIPO, value = TAXA, -SRE, -DATA)
 
-sre_geo@data <- sre_geo@data %>% 
-  left_join(base_tabela, by = c("SRE"))
-
-pal <- colorNumeric(palette = "Blues",
-                    domain = sre_geo@data$TX_ENCERRAMENTO)
-
-content <- paste(sep = "<br>",
-                str_to_title(sre_geo@data$SRE),
-                paste(as.character(round(sre_geo@data$TX_ENCERRAMENTO*100, digits = 2)), "%"))
-
-leaflet::leaflet(sre_geo) %>% 
-  leaflet::addProviderTiles(providers$OpenStreetMap) %>% 
-  leaflet::addPolygons(data = sre_geo, # LAD polygon data from geojson
-                       fillColor = ~pal(TX_ENCERRAMENTO),
-                       fillOpacity = 1,
-                       weight = 1,  # line thickness
-                       opacity = 1,  # line transparency
-                       color = "black", # line colour
-                       popup = content) 
 # UI ----------------------------------------------------------------------
 
 ui <- fluidPage(
@@ -158,28 +132,8 @@ ui <- fluidPage(
                           )
                       )
              ),
-             tabPanel(title = "Mapa",
-                      sidebarLayout(
-                        sidebarPanel(
-                          # Instrucoes
-                          tags$p("Selecione qual processo deseja visualizar."),
-                          # Escolher Processo
-                          selectInput(inputId = "processo",
-                                      label = "Processo",
-                                      choices = c("Criacao de turmas" = "criacao",
-                                                  "Autorizacao de turmas" = "autorizacao",
-                                                  "Encerramento" = "encerramento",
-                                                  "Enturmacao" = "enturmacao"),
-                                      multiple = FALSE,
-                                      selected = "criacao")
-                        ),
-                        mainPanel(
-                          plotOutput("plot_map")
-                        )
-                      )
-             ),
              tabPanel(title = "Sobre",
-                      tags$p("Dashboard desenvolvido para uso da",
+                      tags$p("Dashboard pelo Nucleo de Gestao da Informacao da",
                              " Subsecretaria de Informacoes e Tecnologias",
                              " Educacionais da Secretaria de Estado de Educacao",
                              " para monitoramento de processos administrativos escolares.")
@@ -197,9 +151,8 @@ server <- function(input, output) {
               rownames = FALSE,
               colnames = c("SRE", "Dia", "Taxa de Criacao de Turmas", "Taxa de Autorizacao",
                            "Taxa de Encerramento", "Taxa de Enturmacao")) %>% 
-      formatPercentage(columns = c("TX_CRIACAO",
-                                   "TX_AUTORIZACAO", "TX_ENCERRAMENTO",
-                                   "TX_ENTURMACAO"), 2)
+      formatPercentage(columns = c("TX_CRIACAO", "TX_AUTORIZACAO", 
+                                   "TX_ENCERRAMENTO", "TX_ENTURMACAO"), 2)
   })
   
   # Grafico Criacao de Turmas
@@ -207,18 +160,19 @@ server <- function(input, output) {
     req(input$sre)
     bd_criacao %>% 
       filter(SRE %in% input$sre) %>% 
-      filter(DIA >= input$date[1] & DIA <= input$date[2])
+      filter(DATA >= input$date[1] & DATA <= input$date[2])
   })
   
   output$plot_criacao <- renderPlot({
-    ggplot(data = sre_selected_criacao(), aes(x = DIA, y = TX_CRIACAO, fill = SRE, group = SRE)) +
-      #geom_line(size = 2, linetype = "dashed") +
-      geom_col(alpha = 0.75, position = "dodge") +
+    ggplot(data = sre_selected_criacao(), aes(x = DATA, y = TAXA, color = SRE, group = SRE)) +
+      geom_line(size = 1.5) +
       scale_y_continuous(labels = scales::percent_format()) +
+      #scale_y_continuous(limits = c(0,1.1)) +
+      facet_grid(. ~ TIPO)+
       labs(title = paste0("Evolucao da Enturmacao\n",
                           "Superintendencias Regionais de Ensino."),
            x = "Dia",
-           y = "Percentual de Enturmacao",
+           y = "Percentual de Criacao e Autorizacao de Turmas",
            color = "SRE",
            caption = paste0("SIMADE: ", Sys.Date())) +
       theme(axis.text.x = element_text(face = "bold", angle = 90, size = 17.5),
@@ -235,14 +189,14 @@ server <- function(input, output) {
     req(input$sre)
     bd_encerramento %>% 
       filter(SRE %in% input$sre) %>% 
-      filter(DIA >= input$date[1] & DIA <= input$date[2])
+      filter(DATA >= input$date[1] & DATA <= input$date[2])
   })
   
   output$plot_encerramento <- renderPlot({
-    ggplot(data = sre_selected_encerramento(), aes(x = DIA, y = TX_ENCERRAMENTO, fill = SRE, group = SRE)) +
-      #geom_line(size = 2, linetype = "dashed") +
-      geom_col(alpha = 0.75, position = "dodge") +
+    ggplot(data = sre_selected_encerramento(), aes(x = DATA, y = TX_ENCERRAMENTO, color = SRE, group = SRE)) +
+      geom_line(size = 1.5) +
       scale_y_continuous(labels = scales::percent_format()) +
+      #scale_y_continuous(limits = c(0,1.1)) +
       labs(title = paste0("Evolucao do Encerramento\n",
                           "Superintendencias Regionais de Ensino."),
            x = "Dia",
@@ -263,14 +217,14 @@ server <- function(input, output) {
     req(input$sre)
     bd_matricula %>% 
       filter(SRE %in% input$sre) %>% 
-      filter(DIA >= input$date[1] & DIA <= input$date[2])
+      filter(DATA >= input$date[1] & DATA <= input$date[2])
   })
   
   output$plot_matricula <- renderPlot({
-    ggplot(data = sre_selected_matricula(), aes(x = DIA, y = TX_ENTURMACAO, fill = SRE, group = SRE)) +
-      #geom_line(size = 2, linetype = "dashed") +
-      geom_col(alpha = 0.75, position = "dodge") +
+    ggplot(data = sre_selected_matricula(), aes(x = DATA, y = TX_ENTURMACAO, color = SRE, group = SRE)) +
+      geom_line(size = 1.5) +
       scale_y_continuous(labels = scales::percent_format()) +
+      #scale_y_continuous(limits = c(0,1.1)) +
       labs(title = paste0("Evolucao da Enturmacao\n",
                           "Superintendencias Regionais de Ensino."),
            x = "Dia",
@@ -285,7 +239,7 @@ server <- function(input, output) {
             plot.title = element_text(face = "bold", size = 20),
             legend.text = element_text(size = 12.5))
   })
-
+  
 }
 
 # APP ---------------------------------------------------------------------
