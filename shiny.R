@@ -70,6 +70,7 @@ bd_encerramento <- bd_encerramento %>%
   select(-starts_with("TOTAL"), -PRIMEIRO)
 
 bd_matricula <- bd_matricula %>% 
+  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÉDIO"))) %>% 
   group_by(SRE, DATA) %>% 
   summarise(TOTAL_ALUNO_MATRICULADO  = sum(QT_ALUNO_MATRICULADO, na.rm = TRUE),
             TOTAL_ALUNO_ENTURMADO = sum(QT_ALUNO_ENTURMADO, na.rm = TRUE)) %>% 
