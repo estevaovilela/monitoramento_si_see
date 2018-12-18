@@ -46,7 +46,7 @@ lista_names <- list(CRIACAO = c("SRE", "COD_MUNICIPIO", "MUNICIPIO", "COD_ESCOLA
 ler_renomearVars <- function(arquivo, linhas_skip, name_colunas) {
   
   read_excel(path = arquivo, skip = linhas_skip) %>% 
-    select(-starts_with("X__")) %>%
+    select(-starts_with("X__"), -starts_with("TIPO PLANO")) %>%
     setNames(name_colunas) %>% 
     mutate(DATA = Sys.Date())
   
@@ -74,7 +74,7 @@ removerArquivos <- function(lista_arquivos_01, lista_arquivos_02) {
     file.remove(lista_arquivos_01, lista_arquivos_02)
     
   } else  {
-    print("Arquivos já foram deletados ou tiveram seus nomes alterados. Cheque seu working directory")
+    print("Arquivos j? foram deletados ou tiveram seus nomes alterados. Cheque seu working directory")
   }
 }
 
