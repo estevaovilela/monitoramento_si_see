@@ -2,28 +2,90 @@ library(dbConnect)
 library(RMariaDB)
 library(purrr)
 library(readr)
+library(tidyverse)
 
-# Insira suas credenciais para obter acesso ao Banco NGI:
+
+# Corrija aqui o caminho que será salvo os dados
+pasta <- "C:/Users/m7531296/OneDrive/Núcleo SI/Base de Dados/monitoramento-si/"
+
+# Reading -----------------------------------------------------------------
+
+#Conversão da data no R para a data em formato numérico do Excel (contagem em dias):
+data_hoje <- Sys.Date()
+data_last5 <- (Sys.Date() - 5)
+
+# Conectando com o MySQL:
 con <- dbConnect(RMariaDB::MariaDB(),
                  dbname = "db_ngi",
                  host = "10.23.185.10",
                  port = 3306,
-                 user = "XXXX",
-                 password = "XXXXX")
+                 user = "arthur_cheib",
+                 password = rstudioapi::askForPassword("Database password"))
 
-# Listagem de todas as tabelas que existem no banco NGI:
-tabelas_banco <- dbListTables(con)
+#### Query para df matrícula e enturmação:
+qry_01 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, QT_ALUNO_MATRICULADO, QT_ALUNO_ENTURMADO, DATA ", 
+                 "FROM TBL_MATRICULA ",
+                 "WHERE data ",
+                 "BETWEEN ", "'",data_last5, "'", " AND ", "'", data_hoje, "'", ";")
 
-criacao <- RMariaDB::dbReadTable(con, tabelas_banco[1])
-encerramento <- RMariaDB::dbReadTable(con, tabelas_banco[2])
-matricula <- RMariaDB::dbReadTable(con, tabelas_banco[3])
+data_mt <- dbSendQuery(con, qry_01)
+bd_matricula <- dbFetch(data_mt)
+dbClearResult(data_mt)
+rm(data_mt)
 
-#walk(list(criacao, encerramento, matricula), function(x) write.csv(x, file = c("criacao.csv",
-#                                                                                  "encerramento.csv",
-#                                                                                  "matricula.csv")))
+#### Query para df criação de turmas:
+qry_02 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, QT_TURMA_PA, QT_TURMA_CRIADA, QT_TURMA_AUTORIZADA, DATA ", 
+                 "FROM TBL_CRIACAO ",
+                 "WHERE data ",
+                 "BETWEEN ", "'",data_last5, "'", " AND ", "'", data_hoje, "'", ";")
 
-write_csv(criacao, "criacao.csv")
-write_csv(encerramento, "encerramento.csv")
-write_csv(matricula, "matricula.csv")
+data_cr <- dbSendQuery(con, qry_02)
+bd_criacao <- dbFetch(data_cr)
+dbClearResult(data_cr)
+rm(data_cr)
+
+#### Query para df encerramento:
+qry_03 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, ETAPA, QT_ALUNO_ENTURMADO_ATIVO, QT_ALUNO_ENCERRADO, DATA ", 
+                 "FROM TBL_ENCERRAMENTO ",
+                 "WHERE data ",
+                 "BETWEEN ", "'",data_last5, "'", " AND ", "'", data_hoje, "'", ";")
+
+data_enc <- dbSendQuery(con, qry_03)
+bd_encerramento <- dbFetch(data_enc)
+dbClearResult(data_enc)
+rm(data_enc)
+
+# Wrangling ---------------------------------------------------------------
+
+bd_criacao <- bd_criacao %>% 
+  group_by(SRE, DATA) %>% 
+  summarise(TOTAL_TURMA_PA = sum(QT_TURMA_PA, na.rm = TRUE),
+            TOTAL_TURMA_CRIADA = sum(QT_TURMA_CRIADA, na.rm = TRUE),
+            TOTAL_TURMA_AUTORIZADA = sum(QT_TURMA_AUTORIZADA, na.rm = TRUE)) %>% 
+  mutate(TX_CRIACAO = TOTAL_TURMA_CRIADA / TOTAL_TURMA_PA,
+         TX_AUTORIZACAO = TOTAL_TURMA_AUTORIZADA / TOTAL_TURMA_PA) %>% 
+  select(-starts_with("TOTAL")) 
+
+bd_encerramento <- bd_encerramento %>% 
+  group_by(SRE, DATA) %>% 
+  summarise(TOTAL_ALUNO_ENTURMADO  = sum(QT_ALUNO_ENTURMADO_ATIVO, na.rm = TRUE),
+            TOTAL_ALUNO_ENCERRADO = sum(QT_ALUNO_ENCERRADO, na.rm = TRUE)) %>% 
+  mutate(TX_ENCERRAMENTO = TOTAL_ALUNO_ENCERRADO / TOTAL_ALUNO_ENTURMADO) %>% 
+  select(-starts_with("TOTAL"))
+
+bd_matricula <- bd_matricula %>% 
+  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÉDIO"))) %>% 
+  group_by(SRE, DATA) %>% 
+  summarise(TOTAL_ALUNO_MATRICULADO  = sum(QT_ALUNO_MATRICULADO, na.rm = TRUE),
+            TOTAL_ALUNO_ENTURMADO = sum(QT_ALUNO_ENTURMADO, na.rm = TRUE)) %>% 
+  mutate(TX_ENTURMACAO = TOTAL_ALUNO_ENTURMADO / TOTAL_ALUNO_MATRICULADO) %>% 
+  select(-starts_with("TOTAL"))
+
+
+# Writing -----------------------------------------------------------------
+
+save(bd_criacao, file = paste0(pasta, "bd_criacao.Rdata"))
+save(bd_encerramento, file = paste0(pasta, "bd_encerramento.Rdata"))
+save(bd_matricula, file = paste0(pasta, "bd_matricula.Rdata"))
 
 dbDisconnect(con)
