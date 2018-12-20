@@ -3,7 +3,8 @@ library(tidyverse)
 
 dia_atual <- paste0(rev(str_split(Sys.Date(), pattern = "-")[[1]]), collapse = "")
 
-# Mude seu working directory para a pasta que contém os arquivos enviados pela PRODEMGE atualizados: CTRL+H
+# Mude seu working directory para a pasta que contém os arquivos enviados pela PRODEMGE atualizados: CTRL+SHIFT+H
+
 arquivos_originais <- paste0(getwd(),
                              "/",
                              sort(list.files(path = paste0(getwd(), "/"),
