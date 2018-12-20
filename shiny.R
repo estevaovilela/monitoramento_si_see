@@ -6,76 +6,19 @@ library(rsconnect)
 library(DT)
 library(data.table)
 library(lubridate)
-library(leaflet)
-library(sp)
-library(RMariaDB)
 
 theme_set(theme_bw())
 
+# Corrija aqui o caminho que será salvo os dados
+pasta <- "C:/Users/m7531296/OneDrive/Núcleo SI/Base de Dados/monitoramento-si/"
 
-# Reading - SQL -----------------------------------------------------------
+# Reading - .RData-----------------------------------------------------------------
 
-#Insira suas credenciais para obter acesso ao Banco NGI:
-con <- dbConnect(RMariaDB::MariaDB(),
-                 dbname = "db_ngi",
-                 host = "10.23.185.10",
-                 port = 3306,
-                 user = "arthur_cheib",
-                 password = rstudioapi::askForPassword("Database password"))
-
-#Listagem de todas as tabelas que existem no banco NGI:
-tabelas_banco <- dbListTables(con)
-
-bd_criacao <- RMariaDB::dbReadTable(con, tabelas_banco[1])
-bd_encerramento <- RMariaDB::dbReadTable(con, tabelas_banco[2])
-bd_matricula <- RMariaDB::dbReadTable(con, tabelas_banco[3])
-
-# Reading - csv-----------------------------------------------------------------
-
-#bd_criacao <- data.table::fread(input = "criacao.csv",
-#                          sep = ",",
-#                          header = TRUE,
-#                          stringsAsFactors = FALSE,
-#                          encoding = "UTF-8")
-
-#bd_encerramento <- data.table::fread(input = "encerramento.csv",
-#                                sep = ",",
-#                                header = TRUE,
-#                                stringsAsFactors = FALSE,
-#                                encoding = "UTF-8")
-
-#bd_matricula <- data.table::fread(input = "matricula.csv",
-#                                sep = ",",
-#                                header = TRUE,
-#                                stringsAsFactors = FALSE,
-#                                encoding = "UTF-8")
+load(paste0(pasta, "bd_criacao.Rdata"))
+load(paste0(pasta, "bd_encerramento.Rdata"))
+load(paste0(pasta, "bd_matricula.Rdata"))
 
 # Wrangling ---------------------------------------------------------------
-
-bd_criacao <- bd_criacao %>% 
-  group_by(SRE, DATA) %>% 
-  summarise(TOTAL_TURMA_PA = sum(QT_TURMA_PA, na.rm = TRUE),
-            TOTAL_TURMA_CRIADA = sum(QT_TURMA_CRIADA, na.rm = TRUE),
-            TOTAL_TURMA_AUTORIZADA = sum(QT_TURMA_AUTORIZADA, na.rm = TRUE)) %>% 
-  mutate(TX_CRIACAO = TOTAL_TURMA_CRIADA / TOTAL_TURMA_PA,
-         TX_AUTORIZACAO = TOTAL_TURMA_AUTORIZADA / TOTAL_TURMA_PA) %>% 
-  select(-starts_with("TOTAL")) 
-
-bd_encerramento <- bd_encerramento %>% 
-  group_by(SRE, DATA) %>% 
-  summarise(TOTAL_ALUNO_ENTURMADO  = sum(QT_ALUNO_ENTURMADO_ATIVO, na.rm = TRUE),
-            TOTAL_ALUNO_ENCERRADO = sum(QT_ALUNO_ENCERRADO, na.rm = TRUE)) %>% 
-  mutate(PRIMEIRO = first(TOTAL_ALUNO_ENTURMADO)) %>% 
-  mutate(TX_ENCERRAMENTO = TOTAL_ALUNO_ENCERRADO / PRIMEIRO) %>% 
-  select(-starts_with("TOTAL"), -PRIMEIRO)
-
-bd_matricula <- bd_matricula %>% 
-  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÉDIO"))) %>% 
-  group_by(SRE, DATA) %>% 
-  summarise(TOTAL_ALUNO_MATRICULADO  = sum(QT_ALUNO_MATRICULADO, na.rm = TRUE),
-            TOTAL_ALUNO_ENTURMADO = sum(QT_ALUNO_ENTURMADO, na.rm = TRUE)) %>% 
-  mutate(TX_ENTURMACAO = TOTAL_ALUNO_ENTURMADO / TOTAL_ALUNO_MATRICULADO) %>% 
-  select(-starts_with("TOTAL"))
 
 min_date <- min(bd_criacao$DATA)
 max_date <- max(bd_criacao$DATA)
@@ -123,13 +66,15 @@ ui <- fluidPage(
                                          start = "2018-01-01",
                                          end = "2019-12-31",
                                          min = min_date, max = max_date,
-                                         startview = "year")
+                                         startview = "year"),
+                          width = 3
                         ),
                         mainPanel(
                           tabsetPanel(type = "tabs",
                                       tabPanel("Criacao de Turmas", plotOutput("plot_criacao")),
                                       tabPanel("Encerramento", plotOutput("plot_encerramento")),
-                                      tabPanel("Matricula e Enturmacao", plotOutput("plot_matricula")))
+                                      tabPanel("Matricula e Enturmacao", plotOutput("plot_matricula"))),
+                          width = 9
                           )
                       )
              ),
