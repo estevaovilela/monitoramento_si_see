@@ -5,14 +5,14 @@ library(readr)
 library(tidyverse)
 
 
-# DeclaraÃ§Ã£o do working directory com base nos masps do NGI para salvar inputs do Shiny e do Flex:
+# Declaração do working directory com base nos masps do NGI para salvar inputs do Shiny e do Flex:
 masps_ngi <- c("7531338", "7531304", "7531320", "7531262", "7531189", "7531163", "7531296")
 masp_selecionado <- masps_ngi[which(str_detect(getwd(), pattern = fixed(c(masps_ngi))))]
-setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/NÃºcleo SI/PRODEMGE/Inputs_shiny_flex"))
+setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/Nucleo SI/PRODEMGE/Inputs_shiny_flex"))
 
 # Reading -----------------------------------------------------------------
 
-#ConversÃ£o da data no R para a data em formato numÃ©rico do Excel (contagem em dias):
+#Conversão da data no R para a data em formato numérico do Excel (contagem em dias):
 data_hoje <- Sys.Date()
 data_last7 <- (Sys.Date() - 7)
 
@@ -24,7 +24,7 @@ con <- dbConnect(RMariaDB::MariaDB(),
                  user = "arthur_cheib",
                  password = rstudioapi::askForPassword("Database password"))
 
-#### Query para df matrÃ­cula e enturmaÃ§Ã£o:
+#### Query para df matrícula e enturmação:
 qry_01 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, ETAPA, QT_ALUNO_MATRICULADO, QT_ALUNO_ENTURMADO, DATA ", 
                  "FROM TBL_MATRICULA ",
                  "WHERE data ",
@@ -35,7 +35,7 @@ bd_matricula <- dbFetch(data_mt)
 dbClearResult(data_mt)
 rm(data_mt)
 
-#### Query para df criaÃ§Ã£o de turmas:
+#### Query para df criação de turmas:
 qry_02 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, ETAPA, QT_TURMA_PA, QT_TURMA_CRIADA, QT_TURMA_AUTORIZADA, DATA ", 
                  "FROM TBL_CRIACAO ",
                  "WHERE data ",
@@ -76,7 +76,7 @@ bd_encerramento_shiny <- bd_encerramento %>%
   select(-starts_with("TOTAL"))
 
 bd_matricula_shiny <- bd_matricula %>% 
-  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÃ‰DIO"))) %>% 
+  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÉDIO"))) %>% 
   group_by(SRE, DATA) %>% 
   summarise(TOTAL_ALUNO_MATRICULADO  = sum(QT_ALUNO_MATRICULADO, na.rm = TRUE),
             TOTAL_ALUNO_ENTURMADO = sum(QT_ALUNO_ENTURMADO, na.rm = TRUE)) %>% 
