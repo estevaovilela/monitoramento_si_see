@@ -3,8 +3,12 @@ library(tidyverse)
 
 dia_atual <- paste0(rev(str_split(Sys.Date(), pattern = "-")[[1]]), collapse = "")
 
-# Mude seu working directory para a pasta que contÃ©m os arquivos enviados pela PRODEMGE atualizados: CTRL+SHIFT+H
+# Declaraçãoo do working directory com base nos masps do NGI:
+masps_ngi <- c("7531338", "7531304", "7531320", "7531262", "7531189", "7531163", "7531296")
+masp_selecionado <- masps_ngi[which(str_detect(getwd(), pattern = fixed(c(masps_ngi))))]
+new_dir <- setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/N?cleo SI/PRODEMGE"))
 
+# Inicio do Código
 arquivos_originais <- paste0(getwd(),
                              "/",
                              sort(list.files(path = paste0(getwd(), "/"),
@@ -28,7 +32,7 @@ walk(list(list.files(pattern = ".xlsx$")),
             "encerramento.xlsx",
             "criacao.xlsx"))
 
-# Lendo todos arquivos .xlsx na ordem certa e agrupando todos eles numa lista apÃ³s renomeaÃ§Ã£o das colunas:
+# Lendo todos arquivos .xlsx na ordem certa e agrupando todos eles numa lista após renomeação das colunas:
 lista_arquivos <- as.list(list.files(pattern = ".xlsx$"))
 lista_skips <- list(5,8,4)
 lista_names <- list(CRIACAO = c("SRE", "COD_MUNICIPIO", "MUNICIPIO", "COD_ESCOLA",
@@ -43,7 +47,7 @@ lista_names <- list(CRIACAO = c("SRE", "COD_MUNICIPIO", "MUNICIPIO", "COD_ESCOLA
                                   "ESCOLA", "ENDERECO", "NIVEL", "ETAPA", "TIPO_TURMA",
                                   "TURNO", "QT_ALUNO_MATRICULADO", "QT_ALUNO_ENTURMADO"))
 
-# FunÃ§Ã£o que lÃª e renomeia os arquivos .xslx e os coloca em uma lista:
+# Função que lê e renomeia os arquivos .xslx e os coloca em uma lista:
 ler_renomearVars <- function(arquivo, linhas_skip, name_colunas) {
   
   read_excel(path = arquivo, skip = linhas_skip) %>% 
@@ -75,7 +79,7 @@ removerArquivos <- function(lista_arquivos_01, lista_arquivos_02) {
     file.remove(lista_arquivos_01, lista_arquivos_02)
     
   } else  {
-    print("Arquivos j? foram deletados ou tiveram seus nomes alterados. Cheque seu working directory")
+    print("Arquivos já foram deletados ou tiveram seus nomes alterados. Cheque seu working directory")
   }
 }
 
