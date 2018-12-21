@@ -4,14 +4,13 @@ library(purrr)
 library(readr)
 library(tidyverse)
 
-# Declaração do working directory com base nos masps do NGI para salvar inputs do Shiny e do Flex:
-masps_ngi <- c("7531338", "7531304", "7531320", "7531262", "7531189", "7531163", "7531296")
-masp_selecionado <- masps_ngi[which(str_detect(getwd(), pattern = fixed(c(masps_ngi))))]
-new_dir <- setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/Núcleo SI/PRODEMGE"))
+
+# Corrija aqui o caminho que serÃ¡ salvo os dados
+pasta <- "C:/Users/m7531296/OneDrive/Nucleo SI/Base de Dados/monitoramento-si/"
 
 # Reading -----------------------------------------------------------------
 
-#Conversão da data no R para a data em formato numérico do Excel (contagem em dias):
+#ConversÃ£o da data no R para a data em formato numÃ©rico do Excel (contagem em dias):
 data_hoje <- Sys.Date()
 data_last7 <- (Sys.Date() - 7)
 
@@ -23,7 +22,7 @@ con <- dbConnect(RMariaDB::MariaDB(),
                  user = "arthur_cheib",
                  password = rstudioapi::askForPassword("Database password"))
 
-#### Query para df matrícula e enturmação:
+#### Query para df matrÃ­cula e enturmaÃ§Ã£o:
 qry_01 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, ETAPA, QT_ALUNO_MATRICULADO, QT_ALUNO_ENTURMADO, DATA ", 
                  "FROM TBL_MATRICULA ",
                  "WHERE data ",
@@ -34,7 +33,7 @@ bd_matricula <- dbFetch(data_mt)
 dbClearResult(data_mt)
 rm(data_mt)
 
-#### Query para df criação de turmas:
+#### Query para df criaÃ§Ã£o de turmas:
 qry_02 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, ETAPA, QT_TURMA_PA, QT_TURMA_CRIADA, QT_TURMA_AUTORIZADA, DATA ", 
                  "FROM TBL_CRIACAO ",
                  "WHERE data ",
@@ -75,23 +74,22 @@ bd_encerramento_shiny <- bd_encerramento %>%
   select(-starts_with("TOTAL"))
 
 bd_matricula_shiny <- bd_matricula %>% 
-  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÉDIO"))) %>% 
+  filter(!(NIVEL %in% c("SEMI PRESENCIAL - ENSINO FUNDAMENTAL", "SEMI PRESENCIAL - ENSINO MÃ‰DIO"))) %>% 
   group_by(SRE, DATA) %>% 
   summarise(TOTAL_ALUNO_MATRICULADO  = sum(QT_ALUNO_MATRICULADO, na.rm = TRUE),
             TOTAL_ALUNO_ENTURMADO = sum(QT_ALUNO_ENTURMADO, na.rm = TRUE)) %>% 
   mutate(TX_ENTURMACAO = TOTAL_ALUNO_ENTURMADO / TOTAL_ALUNO_MATRICULADO) %>% 
   select(-starts_with("TOTAL"))
 
+
 # Wrangling - Flex --------------------------------------------------------
 
 
 
-# Writing - Shiny ------------------------------------------------------------
+# Writing -----------------------------------------------------------------
 
 write_csv(bd_criacao_shiny, path = paste0(pasta, "bd_criacao_shiny.csv"))
 write_csv(bd_encerramento_shiny, path = paste0(pasta, "bd_encerramento_shiny.csv"))
 write_csv(bd_matricula_shiny, path = paste0(pasta, "bd_matricula_shiny.csv"))
 
 dbDisconnect(con)
-
-# Writing - Flex ------------------------------------------------------------
