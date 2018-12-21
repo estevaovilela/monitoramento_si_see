@@ -6,13 +6,13 @@ library(tidyverse)
 
 
 # Corrija aqui o caminho que será salvo os dados
-pasta <- "C:/Users/m7531296/OneDrive/Núcleo SI/Base de Dados/monitoramento-si/"
+pasta <- "C:/Users/m7531296/OneDrive/Nucleo SI/Base de Dados/monitoramento-si/"
 
 # Reading -----------------------------------------------------------------
 
 #Conversão da data no R para a data em formato numérico do Excel (contagem em dias):
 data_hoje <- Sys.Date()
-data_last5 <- (Sys.Date() - 5)
+data_last7 <- (Sys.Date() - 7)
 
 # Conectando com o MySQL:
 con <- dbConnect(RMariaDB::MariaDB(),
@@ -26,7 +26,7 @@ con <- dbConnect(RMariaDB::MariaDB(),
 qry_01 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, QT_ALUNO_MATRICULADO, QT_ALUNO_ENTURMADO, DATA ", 
                  "FROM TBL_MATRICULA ",
                  "WHERE data ",
-                 "BETWEEN ", "'",data_last5, "'", " AND ", "'", data_hoje, "'", ";")
+                 "BETWEEN ", "'",data_last7, "'", " AND ", "'", data_hoje, "'", ";")
 
 data_mt <- dbSendQuery(con, qry_01)
 bd_matricula <- dbFetch(data_mt)
@@ -37,7 +37,7 @@ rm(data_mt)
 qry_02 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, QT_TURMA_PA, QT_TURMA_CRIADA, QT_TURMA_AUTORIZADA, DATA ", 
                  "FROM TBL_CRIACAO ",
                  "WHERE data ",
-                 "BETWEEN ", "'",data_last5, "'", " AND ", "'", data_hoje, "'", ";")
+                 "BETWEEN ", "'",data_last7, "'", " AND ", "'", data_hoje, "'", ";")
 
 data_cr <- dbSendQuery(con, qry_02)
 bd_criacao <- dbFetch(data_cr)
@@ -48,7 +48,7 @@ rm(data_cr)
 qry_03 <- paste0("SELECT SRE, COD_ESCOLA, ESCOLA, NIVEL, ETAPA, QT_ALUNO_ENTURMADO_ATIVO, QT_ALUNO_ENCERRADO, DATA ", 
                  "FROM TBL_ENCERRAMENTO ",
                  "WHERE data ",
-                 "BETWEEN ", "'",data_last5, "'", " AND ", "'", data_hoje, "'", ";")
+                 "BETWEEN ", "'",data_last7, "'", " AND ", "'", data_hoje, "'", ";")
 
 data_enc <- dbSendQuery(con, qry_03)
 bd_encerramento <- dbFetch(data_enc)
@@ -63,7 +63,7 @@ bd_criacao <- bd_criacao %>%
             TOTAL_TURMA_CRIADA = sum(QT_TURMA_CRIADA, na.rm = TRUE),
             TOTAL_TURMA_AUTORIZADA = sum(QT_TURMA_AUTORIZADA, na.rm = TRUE)) %>% 
   mutate(TX_CRIACAO = TOTAL_TURMA_CRIADA / TOTAL_TURMA_PA,
-         TX_AUTORIZACAO = TOTAL_TURMA_AUTORIZADA / TOTAL_TURMA_PA) %>% 
+         TX_AUTORIZACAO = TOTAL_TURMA_AUTORIZADA / TOTAL_TURMA_CRIADA) %>% 
   select(-starts_with("TOTAL")) 
 
 bd_encerramento <- bd_encerramento %>% 
@@ -84,8 +84,8 @@ bd_matricula <- bd_matricula %>%
 
 # Writing -----------------------------------------------------------------
 
-save(bd_criacao, file = paste0(pasta, "bd_criacao.Rdata"))
-save(bd_encerramento, file = paste0(pasta, "bd_encerramento.Rdata"))
-save(bd_matricula, file = paste0(pasta, "bd_matricula.Rdata"))
+write_csv(bd_criacao, path = paste0(pasta, "bd_criacao.csv"))
+write_csv(bd_encerramento, path = paste0(pasta, "bd_encerramento.csv"))
+write_csv(bd_matricula, path = paste0(pasta, "bd_matricula.csv"))
 
 dbDisconnect(con)
