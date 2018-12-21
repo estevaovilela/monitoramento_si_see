@@ -6,9 +6,9 @@ dia_atual <- paste0(rev(str_split(Sys.Date(), pattern = "-")[[1]]), collapse = "
 # Declaraçao do working directory com base nos masps do NGI para tratar planilhas da PRODEMGE:
 masps_ngi <- c("7531338", "7531304", "7531320", "7531262", "7531189", "7531163", "7531296")
 masp_selecionado <- masps_ngi[which(str_detect(getwd(), pattern = fixed(c(masps_ngi))))]
-new_dir <- setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/Núcleo SI/PRODEMGE"))
+setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/Nucleo SI/PRODEMGE"))
 
-# Inicio do Cóigo
+# Inicio do Código
 arquivos_originais <- paste0(getwd(),
                              "/",
                              sort(list.files(path = paste0(getwd(), "/"),
