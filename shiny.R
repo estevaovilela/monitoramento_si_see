@@ -14,9 +14,9 @@ pasta <- "C:/Users/m7531296/OneDrive/Nucleo SI/Base de Dados/monitoramento-si/"
 
 # Reading - .RData-----------------------------------------------------------------
 
-bd_criacao <- read_csv(paste0(pasta, "bd_criacao.csv"))
-bd_encerramento <- read_csv(paste0(pasta, "bd_encerramento.csv"))
-bd_matricula <- read_csv(paste0(pasta, "bd_matricula.csv"))
+bd_criacao_shiny <- read_csv(paste0(pasta, "bd_criacao_shiny.csv"))
+bd_encerramento_shiny <- read_csv(paste0(pasta, "bd_encerramento_shiny.csv"))
+bd_matricula_shiny <- read_csv(paste0(pasta, "bd_matricula_shiny.csv"))
 
 # Wrangling ---------------------------------------------------------------
 
