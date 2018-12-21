@@ -10,13 +10,13 @@ library(lubridate)
 theme_set(theme_bw())
 
 # Corrija aqui o caminho que será salvo os dados
-pasta <- "C:/Users/m7531296/OneDrive/Núcleo SI/Base de Dados/monitoramento-si/"
+pasta <- "C:/Users/m7531296/OneDrive/Nucleo SI/Base de Dados/monitoramento-si/"
 
 # Reading - .RData-----------------------------------------------------------------
 
-load(paste0(pasta, "bd_criacao.Rdata"))
-load(paste0(pasta, "bd_encerramento.Rdata"))
-load(paste0(pasta, "bd_matricula.Rdata"))
+bd_criacao_shiny <- read_csv(paste0(pasta, "bd_criacao_shiny.csv"))
+bd_encerramento_shiny <- read_csv(paste0(pasta, "bd_encerramento_shiny.csv"))
+bd_matricula_shiny <- read_csv(paste0(pasta, "bd_matricula_shiny.csv"))
 
 # Wrangling ---------------------------------------------------------------
 
