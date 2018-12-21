@@ -4,9 +4,10 @@ library(purrr)
 library(readr)
 library(tidyverse)
 
-
-# Corrija aqui o caminho que será salvo os dados
-pasta <- "C:/Users/m7531296/OneDrive/Nucleo SI/Base de Dados/monitoramento-si/"
+# Declaração do working directory com base nos masps do NGI para salvar inputs do Shiny e do Flex:
+masps_ngi <- c("7531338", "7531304", "7531320", "7531262", "7531189", "7531163", "7531296")
+masp_selecionado <- masps_ngi[which(str_detect(getwd(), pattern = fixed(c(masps_ngi))))]
+new_dir <- setwd(paste0("C:/Users/m", masp_selecionado, "/OneDrive/Núcleo SI/PRODEMGE"))
 
 # Reading -----------------------------------------------------------------
 
@@ -81,15 +82,16 @@ bd_matricula_shiny <- bd_matricula %>%
   mutate(TX_ENTURMACAO = TOTAL_ALUNO_ENTURMADO / TOTAL_ALUNO_MATRICULADO) %>% 
   select(-starts_with("TOTAL"))
 
-
 # Wrangling - Flex --------------------------------------------------------
 
 
 
-# Writing -----------------------------------------------------------------
+# Writing - Shiny ------------------------------------------------------------
 
 write_csv(bd_criacao_shiny, path = paste0(pasta, "bd_criacao_shiny.csv"))
 write_csv(bd_encerramento_shiny, path = paste0(pasta, "bd_encerramento_shiny.csv"))
 write_csv(bd_matricula_shiny, path = paste0(pasta, "bd_matricula_shiny.csv"))
 
 dbDisconnect(con)
+
+# Writing - Flex ------------------------------------------------------------
